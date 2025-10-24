@@ -30,5 +30,10 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+    'shipment_api' => [
+        'url' => env('SHIPMENT_API_URL'),
+        'username' => env('SHIPMENT_API_USERNAME'),
+        'password' => env('SHIPMENT_API_PASSWORD'),
+    ],
 
 ];
