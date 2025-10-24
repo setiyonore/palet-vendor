@@ -20,77 +20,107 @@ class GudangPaletResource extends Resource
 
     protected static ?string $modelLabel = 'Plant Palet';
     protected static ?string $pluralModelLabel = 'Plant Palet';
-
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+
+    /* ======================
+     * NAV & ACCESS GUARDS
+     * ====================== */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->can('view_any_gudang::palet') ?? false;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->can('view_any_gudang::palet') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->can('create_gudang::palet') ?? false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->can('update_gudang::palet') ?? false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->can('delete_gudang::palet') ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->can('delete_any_gudang::palet') ?? false;
+    }
+
+    public static function getPermissionPrefixes(): array
+    {
+        // biar konsisten dengan Shield
+        return ['view', 'view_any', 'create', 'update', 'delete', 'delete_any'];
+    }
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Section::make()
-                    ->schema([
-                        TextInput::make('kode_gudang')
-                            ->label('Kode Plant')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->maxLength(50),
+        return $form->schema([
+            Section::make()->schema([
+                TextInput::make('kode_gudang')
+                    ->label('Kode Plant')
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(50),
 
-                        TextInput::make('nama_gudang')
-                            ->label('Nama Plant')
-                            ->required()
-                            ->maxLength(255),
+                TextInput::make('nama_gudang')
+                    ->label('Nama Plant')
+                    ->required()
+                    ->maxLength(255),
 
-                        Textarea::make('lokasi')
-                            ->label('Alamat / Lokasi Plant')
-                            ->columnSpanFull(),
-                    ])->columns(2),
-            ]);
+                Textarea::make('lokasi')
+                    ->label('Alamat / Lokasi Plant')
+                    ->columnSpanFull(),
+            ])->columns(2),
+        ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                TextColumn::make('kode_gudang')
-                    ->label('Kode Plant')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('nama_gudang')
-                    ->label('Nama Plant')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('lokasi')
-                    ->limit(50)
-                    ->tooltip('Lihat selengkapnya')
+                TextColumn::make('kode_gudang')->label('Kode Plant')->searchable()->sortable(),
+                TextColumn::make('nama_gudang')->label('Nama Plant')->searchable()->sortable(),
+                TextColumn::make('lokasi')->limit(50)->tooltip('Lihat selengkapnya'),
             ])
-            ->filters([
-                // Filter bisa ditambahkan di sini jika perlu
-            ])
+            ->filters([])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->visible(fn() => auth()->user()?->can('view_gudang::palet') ?? false),
+
+                Tables\Actions\EditAction::make()
+                    ->visible(fn() => auth()->user()?->can('update_gudang::palet') ?? false),
+
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn() => auth()->user()?->can('delete_gudang::palet') ?? false),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn() => auth()->user()?->can('delete_any_gudang::palet') ?? false),
                 ]),
             ]);
     }
 
     public static function getRelations(): array
     {
-        return [
-            // Relasi bisa didefinisikan di sini
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListGudangPalets::route('/'),
+            'index'  => Pages\ListGudangPalets::route('/'),
             'create' => Pages\CreateGudangPalet::route('/create'),
-            'edit' => Pages\EditGudangPalet::route('/{record}/edit'),
-            // 'view' => Pages\ViewGudangPalet::route('/{record}'),
+            'edit'   => Pages\EditGudangPalet::route('/{record}/edit'),
         ];
     }
 }
