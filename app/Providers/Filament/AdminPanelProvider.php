@@ -33,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->sidebarCollapsibleOnDesktop()
             // 2. Tambahkan baris ini untuk menemukan Resource di direktori PaletManagement
             ->discoverResources(in: app_path('Filament/PaletManagement/Resources'), for: 'App\\Filament\\PaletManagement\\Resources')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

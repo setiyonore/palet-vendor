@@ -132,8 +132,10 @@ class ViewPeminjamanPalet extends ViewRecord
                 }),
             // --- SELESAI PENAMBAHAN ---
 
-            Actions\EditAction::make(),
-            Actions\DeleteAction::make(),
+            Actions\EditAction::make()
+                ->visible(fn() => auth()->user()?->can('update_peminjaman::palet') ?? false),
+            Actions\DeleteAction::make()
+                ->visible(fn() => auth()->user()?->can('delete_peminjaman::palet') ?? false),
         ];
     }
 
