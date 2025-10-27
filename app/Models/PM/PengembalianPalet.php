@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 
 class PengembalianPalet extends Model
 {
-    protected $connection = 'dbwh';
+    // protected $connection = 'dbwh';
     protected $table = 'public.pengembalian_palet';
     protected $guarded = [];
 

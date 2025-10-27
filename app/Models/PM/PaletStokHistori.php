@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Cache;
 class PaletStokHistori extends Model
 {
     use HasFactory;
-    protected $connection = 'dbwh';
+    // protected $connection = 'dbwh';
     protected $table = 'public.palet_stok_histori';
     protected $guarded = [];
     const UPDATED_AT = null;

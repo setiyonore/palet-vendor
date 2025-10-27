@@ -13,7 +13,7 @@ class PeminjamanManual extends Model
     /**
      * Menentukan koneksi database ke data warehouse.
      */
-    protected $connection = 'dbwh';
+    // protected $connection = 'dbwh';
 
     /**
      * Menentukan nama tabel di database.

@@ -37,6 +37,11 @@ class PeminjamanManualResource extends Resource
         return auth()->user()?->can('delete_any_peminjaman::manual') ?? false;
     }
 
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->can('delete_peminjaman::manual') ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -121,13 +126,11 @@ class PeminjamanManualResource extends Resource
                 // Tables\Actions\EditAction::make()
                 //     ->visible(fn () => auth()->user()?->can('update_peminjaman::manual') ?? false),
 
-                Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => auth()->user()?->can('delete_peminjaman::manual') ?? false),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->can('delete_any_peminjaman::manual') ?? false),
+                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }

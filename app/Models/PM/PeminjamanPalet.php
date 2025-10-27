@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PeminjamanPalet extends Model
 {
-    protected $connection = 'dbwh';
+    // protected $connection = 'dbwh';
     protected $table = 'public.peminjaman_palet';
     protected $guarded = [];
 

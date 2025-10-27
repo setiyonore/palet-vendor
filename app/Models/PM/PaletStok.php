@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class PaletStok extends Model
 {
     use HasFactory;
-    protected $connection = 'dbwh';
+    // protected $connection = 'dbwh';
     protected $table = 'public.palet_stok';
     public $timestamps = false;
     protected $fillable = [
