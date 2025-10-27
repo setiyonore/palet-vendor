@@ -8,6 +8,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Support\Facades\Hash;
+
 
 class User extends Authenticatable
 {
@@ -43,5 +45,25 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'password_changed_at' => 'datetime',
     ];
+    protected static function booted()
+    {
+        static::updating(function ($user) {
+            if ($user->isDirty('password')) {
+                $user->password_changed_at = now();
+            }
+        });
+    }
+
+    public function setPasswordAttribute($value): void
+    {
+        if (blank($value)) {
+            // abaikan assignment kosong; biarkan password lama
+            return;
+        }
+
+        $this->attributes['password'] = Hash::make($value);
+        $this->attributes['password_changed_at'] = now();
+    }
 }

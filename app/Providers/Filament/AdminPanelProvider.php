@@ -20,12 +20,20 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Filament\PaletManagement\Pages\ChangePassword;
+use Filament\Navigation\MenuItem;
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
+            ->userMenuItems([
+                MenuItem::make()
+                    ->label('Ganti Password')
+                    ->url(fn() => ChangePassword::getUrl())
+                    ->icon('heroicon-m-key'),
+            ])
             ->default()
             ->id('admin')
             ->path('admin')
@@ -41,6 +49,7 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Pages\Dashboard::class,
                 StokAdjustment::class,
+                ChangePassword::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
@@ -60,6 +69,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\ForcePasswordChange::class,
             ])
             // 3. Daftarkan plugin Filament Shield
             ->plugin(FilamentShieldPlugin::make());

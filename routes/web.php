@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Filament\PaletManagement\Pages\ChangePassword;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -16,3 +16,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+
+
+Route::get('/password/change', function () {
+    return redirect(ChangePassword::getUrl());
+})->name('password.change')->middleware(['auth']);

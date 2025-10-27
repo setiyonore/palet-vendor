@@ -44,7 +44,8 @@ class UserResource extends Resource
                         ->label('Password')
                         ->password()
                         ->revealable()
-                        ->dehydrateStateUsing(fn($state) => filled($state) ? $state : null) // biarkan casting hashed yang handle
+                        ->dehydrated(fn($state) => filled($state))
+                        ->dehydrateStateUsing(fn($state) => filled($state) ? $state : null)
                         ->required(fn(string $context) => $context === 'create')
                         ->rule(PasswordRule::default())
                         ->same('password_confirmation'),
