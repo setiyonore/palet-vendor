@@ -119,8 +119,7 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
                                 }
 
                                 if ($nopolFromApi) {
-                                    $outstandingQty = DB::connection('dbwh')
-                                        ->table('transaksi_palet')
+                                    $outstandingQty = PeminjamanPalet::query()
                                         ->where('nopol', $nopolFromApi)
                                         ->sum('qty');
 
