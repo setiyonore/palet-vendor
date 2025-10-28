@@ -231,7 +231,19 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
                     ->visible(fn() => auth()->user()?->can('update_peminjaman::palet') ?? false),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => auth()->user()?->can('delete_peminjaman::palet') ?? false),
+                    ->visible(fn() => auth()->user()?->can('delete_peminjaman::palet') ?? false)
+                    ->before(
+                        function (\Filament\Tables\Actions\DeleteAction $action, \App\Models\PM\PeminjamanPalet $record) {
+                            if ($record->pengembalian()->exists()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Tidak bisa dihapus')
+                                    ->body('Transaksi tidak dapat dihapus karena sudah diinputkan pengembalian')
+                                    ->send();
+                                $action->halt();
+                            }
+                        }
+                    ),
 
                 Tables\Actions\Action::make('kembalikan')
                     ->label('Kembalikan Palet')
