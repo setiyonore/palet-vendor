@@ -81,24 +81,31 @@ class ShipmentApiService
     /**
      * Mengambil data shipment dari API.
      */
-    public function getShipment(string $shipmentNumber): ?array
+    public function getShipment(string $shipmentNumber, string $dateStart, string $dateEnd): ?array
     {
         $token = $this->getToken();
         if (!$token) {
-            // Jika getToken() gagal, ia akan melempar exception, jadi kita tidak perlu return null
             throw new \Exception('Gagal mendapatkan token API. Lihat log untuk detail login.');
         }
 
         try {
-            $defaultDateStart = Carbon::now()->startOfMonth()->format('Y-m-d H:i:s');
-            $defaultDateEnd = Carbon::now()->endOfMonth()->format('Y-m-d H:i:s');
+            // --- PERBAIKAN: Gunakan $dateStart dan $dateEnd dari parameter (input form) ---
+            // Baris yang memaksa default tanggal bulan ini telah dihapus.
             $payload = [
                 'shipment_number' => $shipmentNumber,
-                'shipment_date_start' => $defaultDateStart,
-                'shipment_date_end' => $defaultDateEnd,
+                'no_spj' => "",
+                'shipment_date_start' => $dateStart, // <-- Menggunakan input dari form
+                'shipment_date_end' => $dateEnd, // <-- Menggunakan input dari form
+                'last_update_date' => "",
+                'code_plant' => "",
+                'shipment_status' => "",
+                'vendor_name' => "",
+                'nopol' => "",
+                'nopin' => "",
+                'shipto_name' => ""
             ];
+            // --- SELESAI ---
 
-            // --- LOGGING DITAMBAHKAN ---
             Log::debug('ShipmentAPI data request', [
                 'url' => $this->baseUrl . '/api/shipment',
                 'payload' => $payload,
@@ -110,31 +117,32 @@ class ShipmentApiService
                 ->timeout(30)
                 ->post('/api/shipment', $payload);
 
-            // --- LOGGING DITAMBAHKAN ---
             Log::debug('ShipmentAPI data response', [
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
 
             if ($response->successful()) {
-                return $response->json();
+                $data = $response->json();
+                if (($data['status'] ?? true) === false && str_contains($data['message'] ?? '', 'Data tidak ditemukan')) {
+                    throw new \Exception("Data tidak ditemukan di API untuk shipment {$shipmentNumber} pada rentang tanggal tersebut.");
+                }
+                return $data;
             }
 
             if ($response->status() === 401) {
-                Cache::forget(self::CACHE_KEY); // Hapus token jika expired
+                Cache::forget(self::CACHE_KEY);
             }
 
-            // --- PERBAIKAN: Melemparkan Error agar terlihat di UI ---
             Log::warning('Failed to fetch shipment data', [
                 'status' => $response->status(),
                 'body' => $response->body(),
-                'shipment_number' => $shipmentNumber
+                'payload' => $payload
             ]);
             throw new \Exception("Failed to fetch shipment data. Status: {$response->status()} | Body: {$response->body()}");
         } catch (Throwable $e) {
             Log::error('Shipment API getShipment Exception', ['message' => $e->getMessage()]);
-            // Melemparkan ulang error agar bisa ditangkap oleh Filament
-            throw new \Exception("Shipment API getShipment Exception: {$e->getMessage()}");
+            throw new \Exception($e->getMessage());
         }
     }
 }

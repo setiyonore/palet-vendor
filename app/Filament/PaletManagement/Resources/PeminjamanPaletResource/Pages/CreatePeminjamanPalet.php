@@ -72,6 +72,8 @@ class CreatePeminjamanPalet extends CreateRecord
                     'data.qty' => "Stok RFI di gudang tidak mencukupi. Stok tersedia: " . ($stok->qty_rfi ?? 0),
                 ]);
             }
+            unset($fullData['shipment_date_start']);
+            unset($fullData['shipment_date_end']);
 
             // Log::info('DATA FINAL SEBELUM CREATE:', $fullData);
             $peminjaman = static::getResource()::getModel()::create($fullData);

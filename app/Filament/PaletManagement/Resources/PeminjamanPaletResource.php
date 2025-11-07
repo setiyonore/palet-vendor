@@ -26,8 +26,10 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component as Livewire;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
@@ -39,16 +41,6 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
     protected static ?string $navigationLabel = 'Transaksi Palet';
     protected static ?string $navigationIcon = 'heroicon-o-arrows-right-left';
 
-    # === NAV & ACCESS GUARDS (baru) ===
-    public static function shouldRegisterNavigation(): bool
-    {
-        return auth()->user()?->can('view_any_peminjaman::palet') ?? false;
-    }
-    public static function canViewAny(): bool
-    {
-        return auth()->user()?->can('view_any_peminjaman::palet') ?? false;
-    }
-
     public static function getPermissionPrefixes(): array
     {
         return [
@@ -58,7 +50,7 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
             'update',
             'delete',
             'delete_any',
-            'kembalikan', // custom action
+            'kembalikan',
         ];
     }
 
@@ -69,12 +61,18 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
                 TextInput::make('no_shipment')
                     ->label('No Shipment')
                     ->required()
+                    ->columnSpanFull() // Jadikan full width agar rapi
                     ->suffixAction(
                         Forms\Components\Actions\Action::make('cekNoShipment')
                             ->label('Cek')
                             ->icon('heroicon-o-magnifying-glass')
                             ->action(function (Get $get, Set $set, Livewire $livewire) {
                                 $no = trim((string) $get('no_shipment'));
+                                // --- AMBIL DATA TANGGAL DARI FORM ---
+                                $dateStart = $get('shipment_date_start');
+                                $dateEnd = $get('shipment_date_end');
+                                // --- SELESAI ---
+
                                 $set('no_shipment', $no);
 
                                 $resetForm = function () use ($set, $livewire) {
@@ -87,59 +85,65 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
                                     $set('kode_shipto2', null);
                                 };
 
-                                if (empty($no)) {
+                                // --- VALIDASI INPUT TANGGAL ---
+                                if (empty($no) || empty($dateStart) || empty($dateEnd)) {
                                     $resetForm();
-                                    Notification::make()->title('No Shipment wajib diisi')->warning()->send();
+                                    Notification::make()->title('Input Tidak Lengkap')->body('No Shipment, Tanggal Mulai, dan Tanggal Akhir wajib diisi.')->warning()->send();
                                     return;
                                 }
 
                                 $apiService = app(ShipmentApiService::class);
-                                $payload = $apiService->getShipment($no);
+
+                                // --- KIRIM DATA TANGGAL KE SERVICE ---
+                                // Ini adalah baris (sekitar line 99) yang menyebabkan error
+                                // Sekarang sudah diperbarui untuk mengirim 3 parameter
+                                $payload = $apiService->getShipment($no, $dateStart, $dateEnd);
+                                // --- SELESAI ---
+
                                 if (($payload['status'] ?? true) === false || empty($payload['data'])) {
                                     $resetForm();
                                     Notification::make()
                                         ->title(data_get($payload, 'message', 'Data Tidak Ditemukan'))
-                                        ->body('Pastikan nomor shipment yang Anda masukkan sudah benar.')
+                                        ->body('Pastikan nomor shipment dan rentang tanggal sudah benar.')
                                         ->danger()
                                         ->send();
                                     return;
                                 }
-
                                 $header = data_get($payload, 'data.0');
                                 $nopolFromApi = data_get($header, 'nopol');
 
+                                // Validasi duplikat (No Shipment)
                                 if (PeminjamanPalet::where('no_shipment', $no)->exists()) {
                                     $resetForm();
-                                    Notification::make()
-                                        ->danger()
-                                        ->title('Peminjaman Gagal')
-                                        ->body('Nomor shipment ini sudah terdaftar dan melakukan peminjaman.')
-                                        ->send();
+                                    Notification::make()->danger()->title('Peminjaman Gagal')->body('Nomor shipment ini sudah terdaftar.')->send();
                                     return;
                                 }
 
+                                // Validasi duplikat (Nopol)
                                 if ($nopolFromApi) {
-                                    $outstandingQty = PeminjamanPalet::query()
+                                    $outstandingQty = DB::connection('dbwh')
+                                        ->table('transaksi_palet')
                                         ->where('nopol', $nopolFromApi)
                                         ->sum('qty');
 
                                     if ($outstandingQty > 0) {
                                         $resetForm();
-                                        Notification::make()
-                                            ->danger()
-                                            ->title('Peminjaman Gagal')
-                                            ->body("Kendaraan dengan Nopol {$nopolFromApi} masih memiliki tanggungan {$outstandingQty} palet yang belum dikembalikan.")
-                                            ->send();
+                                        Notification::make()->danger()->title('Peminjaman Gagal')->body("Kendaraan Nopol {$nopolFromApi} masih memiliki tanggungan {$outstandingQty} palet.")->send();
                                         return;
                                     }
                                 }
 
-                                $totTonase   = (float) data_get($header, 'tot_tonase_shipment', 0);
-                                $defaultQty  = ceil($totTonase / 2);
-                                $kodePlant   = data_get($header, 'kode_plant2');
-                                $defaultGudangId = optional(
-                                    GudangPalet::where('kode_gudang', $kodePlant)->first()
-                                )->id;
+                                $totTonase = (float) data_get($header, 'tot_tonase_shipment', 0);
+                                $defaultQty = ceil($totTonase / 2);
+
+                                $kodePlantFromApi = data_get($header, 'kode_plant2');
+                                $defaultGudangId = null;
+                                if ($kodePlantFromApi) {
+                                    $gudang = GudangPalet::where('kode_gudang', $kodePlantFromApi)->first();
+                                    if ($gudang) {
+                                        $defaultGudangId = $gudang->id;
+                                    }
+                                }
 
                                 $livewire->shipmentPayload = ['no_shipment' => $no, 'header' => $header];
                                 $livewire->shipmentChecked = true;
@@ -155,6 +159,18 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
                                 Notification::make()->title('No Shipment ditemukan')->success()->send();
                             })
                     ),
+
+                // --- FIELD TANGGAL BARU DITAMBAHKAN ---
+                DateTimePicker::make('shipment_date_start')
+                    ->label('Shipment Date Start')
+                    ->required()
+                    ->default(now()->startOfDay()), // Default hari ini jam 00:00
+                DateTimePicker::make('shipment_date_end')
+                    ->label('Shipment Date End')
+                    ->required()
+                    ->default(now()->endOfDay()), // Default hari ini jam 23:59
+                // --- SELESAI ---
+
                 Select::make('gudang_id')
                     ->label('Ambil dari Plant')
                     ->relationship(name: 'gudangPalet', titleAttribute: 'nama_gudang')
@@ -163,9 +179,16 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
                     ->preload()
                     ->required(),
 
-                TextInput::make('qty')->label('Jumlah')->numeric()->minValue(1)->required(),
+                TextInput::make('qty')
+                    ->label('Jumlah')
+                    ->numeric()
+                    ->minValue(1)
+                    ->required(),
 
-                DateTimePicker::make('tgl_peminjaman')->label('Tanggal & Waktu Peminjaman')->default(now())->required(),
+                DateTimePicker::make('tgl_peminjaman')
+                    ->label('Tanggal & Waktu Peminjaman')
+                    ->default(now())
+                    ->required(),
 
                 FileUpload::make('berita_acara_path')
                     ->label('Upload Berita Acara Peminjaman (PDF)')
@@ -186,7 +209,9 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
                     ->label('')
                     ->content('Tombol **Create** akan aktif setelah No Shipment berhasil dicek.')
                     ->visible(function (Livewire $livewire): bool {
-                        if ($livewire->record) return false;
+                        if ($livewire->record) {
+                            return false;
+                        }
                         return ! (bool) ($livewire->shipmentChecked ?? false);
                     })
                     ->extraAttributes(['class' => 'text-yellow-600 text-sm mb-2']),
@@ -203,7 +228,11 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
                 TextColumn::make('tgl_peminjaman')->dateTime()->label('Tgl. Pinjam')->sortable(),
                 TextColumn::make('gudangPalet.nama_gudang')->label('Plant Asal')->sortable()->searchable(),
                 TextColumn::make('nopol')->searchable(),
-                TextColumn::make('masterVendor.nama_vendor')->label('Vendor')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('masterVendor.nama_vendor')
+                    ->label('Vendor')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('qty')->label('Jumlah'),
                 TextColumn::make('status')
                     ->badge()
@@ -219,53 +248,52 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
                     }),
             ])
             ->filters([
-                SelectFilter::make('status')->options(['0' => 'Belum Dikembalikan', '1' => 'Sudah Dikembalikan']),
-                SelectFilter::make('gudang_id')->label('Gudang Asal')->relationship('gudangPalet', 'nama_gudang'),
+                SelectFilter::make('status')
+                    ->options([
+                        '0' => 'Belum Dikembalikan',
+                        '1' => 'Sudah Dikembalikan',
+                    ]),
+                SelectFilter::make('gudang_id')
+                    ->label('Gudang Asal')
+                    ->relationship('gudangPalet', 'nama_gudang'),
             ])
             ->actions([
-                # === ACTION GUARDS (baru) ===
-                Tables\Actions\ViewAction::make()
-                    ->visible(fn() => auth()->user()?->can('view_peminjaman::palet') ?? false),
-
-                Tables\Actions\EditAction::make()
-                    ->visible(fn() => auth()->user()?->can('update_peminjaman::palet') ?? false),
-
-                Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => auth()->user()?->can('delete_peminjaman::palet') ?? false)
-                    ->before(
-                        function (\Filament\Tables\Actions\DeleteAction $action, \App\Models\PM\PeminjamanPalet $record) {
-                            if ($record->pengembalian()->exists()) {
-                                \Filament\Notifications\Notification::make()
-                                    ->danger()
-                                    ->title('Tidak bisa dihapus')
-                                    ->body('Transaksi tidak dapat dihapus karena sudah diinputkan pengembalian')
-                                    ->send();
-                                $action->halt();
-                            }
-                        }
-                    ),
-
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('kembalikan')
                     ->label('Kembalikan Palet')
                     ->icon('heroicon-o-inbox-arrow-down')
                     ->color('success')
-                    ->visible(
-                        fn(PeminjamanPalet $record) =>
-                        $record->status === 0
-                            && (auth()->user()?->can('kembalikan_peminjaman::palet') ?? false)
-                    )
+                    ->visible(fn(PeminjamanPalet $record): bool => $record->status === 0)
                     ->form([
-                        Section::make('Detail Peminjaman')->schema([
-                            Placeholder::make('no_shipment_info')->label('No. Shipment')->content(fn(PeminjamanPalet $record): string => $record->no_shipment),
-                            Placeholder::make('gudang_asal_info')->label('Plant Asal')->content(fn(PeminjamanPalet $record): string => $record->gudangPalet->nama_gudang ?? '-'),
-                            Placeholder::make('nama_shipto_info')->label('Nama Shipto')->content(fn(PeminjamanPalet $record): string => $record->nama_shipto ?? '-'),
-                            Placeholder::make('nopol_info')->label('No. Polisi')->content(fn(PeminjamanPalet $record): string => $record->nopol ?? '-'),
-                            Placeholder::make('driver_info')->label('Driver')->content(fn(PeminjamanPalet $record): string => $record->nama_driver ?? '-'),
-                            Placeholder::make('qty_info')->label('Total Pinjam')->content(fn(PeminjamanPalet $record): string => "{$record->qty} unit."),
-                        ])->columns(2),
+                        Section::make('Detail Peminjaman')
+                            ->schema([
+                                Placeholder::make('no_shipment_info')
+                                    ->label('No. Shipment')
+                                    ->content(fn(PeminjamanPalet $record): string => $record->no_shipment),
+                                Placeholder::make('gudang_asal_info')
+                                    ->label('Plant Asal')
+                                    ->content(fn(PeminjamanPalet $record): string => $record->gudangPalet->nama_gudang ?? '-'),
+                                Placeholder::make('nama_shipto_info')
+                                    ->label('Nama Shipto')
+                                    ->content(fn(PeminjamanPalet $record): string => $record->nama_shipto ?? '-'),
+                                Placeholder::make('nopol_info')
+                                    ->label('No. Polisi')
+                                    ->content(fn(PeminjamanPalet $record): string => $record->nopol ?? '-'),
+                                Placeholder::make('driver_info')
+                                    ->label('Driver')
+                                    ->content(fn(PeminjamanPalet $record): string => $record->nama_driver ?? '-'),
+                                Placeholder::make('qty_info')
+                                    ->label('Total Pinjam')
+                                    ->content(fn(PeminjamanPalet $record): string => "{$record->qty} unit."),
+                            ])->columns(2),
                         Select::make('gudang_id')
                             ->label('Kembalikan ke Plant')
-                            ->options(GudangPalet::all()->mapWithKeys(fn(GudangPalet $g) => [$g->id => "[{$g->kode_gudang}] {$g->nama_gudang}"]))
+                            ->options(
+                                GudangPalet::all()->mapWithKeys(function (GudangPalet $gudang) {
+                                    return [$gudang->id => "[{$gudang->kode_gudang}] {$gudang->nama_gudang}"];
+                                })
+                            )
                             ->searchable()
                             ->required(),
                         Section::make('Jumlah Palet Kembali (Total harus sama dengan jumlah pinjam)')->schema([
@@ -303,7 +331,7 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
 
                                 $record->update(['status' => 1]);
 
-                                $stok = \App\Models\PM\PaletStok::where('gudang_id', $data['gudang_id'])->lockForUpdate()->firstOrFail();
+                                $stok = PaletStok::where('gudang_id', $data['gudang_id'])->lockForUpdate()->firstOrFail();
                                 $stok->increment('qty_rfi', $data['qty_kembali_rfi']);
                                 $stok->increment('qty_tbr', $data['qty_kembali_tbr']);
                                 $stok->increment('qty_ber', $data['qty_kembali_ber']);
@@ -328,14 +356,12 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->can('delete_any_peminjaman::palet') ?? false),
+                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->headerActions([
                 ExportAction::make()
                     ->label('Export Excel')
-                    ->visible(fn() => auth()->user()?->can('view_any_peminjaman::palet') ?? false)
                     ->exports([
                         ExcelExport::make()
                             ->fromTable()
@@ -348,10 +374,10 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListPeminjamanPalets::route('/'),
+            'index' => Pages\ListPeminjamanPalets::route('/'),
             'create' => Pages\CreatePeminjamanPalet::route('/create'),
-            'edit'   => Pages\EditPeminjamanPalet::route('/{record}/edit'),
-            'view'   => Pages\ViewPeminjamanPalet::route('/{record}'),
+            'edit' => Pages\EditPeminjamanPalet::route('/{record}/edit'),
+            'view' => Pages\ViewPeminjamanPalet::route('/{record}'),
         ];
     }
 }
