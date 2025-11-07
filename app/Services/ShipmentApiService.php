@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
+use Carbon\Carbon;
 
 class ShipmentApiService
 {
@@ -89,7 +90,13 @@ class ShipmentApiService
         }
 
         try {
-            $payload = ['shipment_number' => $shipmentNumber];
+            $defaultDateStart = Carbon::now()->startOfMonth()->format('Y-m-d H:i:s');
+            $defaultDateEnd = Carbon::now()->endOfMonth()->format('Y-m-d H:i:s');
+            $payload = [
+                'shipment_number' => $shipmentNumber,
+                'shipment_date_start' => $defaultDateStart,
+                'shipment_date_end' => $defaultDateEnd,
+            ];
 
             // --- LOGGING DITAMBAHKAN ---
             Log::debug('ShipmentAPI data request', [
