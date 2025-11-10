@@ -14,7 +14,7 @@ use App\Filament\PaletManagement\Pages\ChangePassword;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/admin');
 });
 
 
