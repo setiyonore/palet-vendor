@@ -9,6 +9,7 @@ use App\Models\PM\PaletStokHistori;
 use App\Models\PM\PeminjamanPalet;
 use App\Models\PM\PengembalianPalet;
 use App\Services\ShipmentApiService;
+use App\Models\PM\PeminjamanManual;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
@@ -121,14 +122,23 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
 
                                 // Validasi duplikat (Nopol)
                                 if ($nopolFromApi) {
-                                    $outstandingQty = DB::connection('dbwh')
-                                        ->table('transaksi_palet')
-                                        ->where('nopol', $nopolFromApi)
-                                        ->sum('qty');
+                                    // 1. Cek di tabel peminjaman API
+                                    $apiLoanExists = PeminjamanPalet::where('nopol', $nopolFromApi)
+                                        ->where('status', 0) // Cek yang statusnya 'Belum Dikembalikan'
+                                        ->exists();
 
-                                    if ($outstandingQty > 0) {
+                                    // 2. Cek di tabel peminjaman manual
+                                    $manualLoanExists = PeminjamanManual::where('nopol', $nopolFromApi)
+                                        ->where('status', 0) // Cek yang statusnya 'Belum Dikembalikan'
+                                        ->exists();
+
+                                    if ($apiLoanExists || $manualLoanExists) {
                                         $resetForm();
-                                        Notification::make()->danger()->title('Peminjaman Gagal')->body("Kendaraan Nopol {$nopolFromApi} masih memiliki tanggungan {$outstandingQty} palet.")->send();
+                                        Notification::make()
+                                            ->danger()
+                                            ->title('Peminjaman Gagal')
+                                            ->body("Kendaraan dengan Nopol {$nopolFromApi} masih memiliki peminjaman palet yang belum dikembalikan di sistem.")
+                                            ->send();
                                         return;
                                     }
                                 }
