@@ -174,10 +174,12 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
                 DateTimePicker::make('shipment_date_start')
                     ->label('Shipment Date Start')
                     ->required()
+                    ->hidden()
                     ->default(now()->startOfDay()), // Default hari ini jam 00:00
                 DateTimePicker::make('shipment_date_end')
                     ->label('Shipment Date End')
                     ->required()
+                    ->hidden()
                     ->default(now()->endOfDay()), // Default hari ini jam 23:59
                 // --- SELESAI ---
 
