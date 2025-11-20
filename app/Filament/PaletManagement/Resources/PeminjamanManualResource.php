@@ -18,6 +18,8 @@ class PeminjamanManualResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Peminjaman Saldo Awal';
     protected static ?string $navigationIcon = 'heroicon-o-document-arrow-up';
+    protected static ?string $navigationGroup = 'Operasional';
+    protected static ?int $navigationSort = 3;
 
     /* === NAV & ACCESS GUARDS === */
     public static function shouldRegisterNavigation(): bool

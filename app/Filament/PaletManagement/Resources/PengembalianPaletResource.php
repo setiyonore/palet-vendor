@@ -29,6 +29,8 @@ class PengembalianPaletResource extends Resource
     protected static ?string $pluralModelLabel = 'Pengembalian Palet';
     protected static ?string $navigationIcon = 'heroicon-o-arrow-down-on-square';
     protected static bool $shouldRegisterNavigation = true;
+    protected static ?string $navigationGroup = 'Operasional';
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {

@@ -24,6 +24,8 @@ class StokAdjustment extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-arrows-up-down';
     protected static ?string $navigationLabel = 'Penyesuaian Stok';
+    protected static ?string $navigationGroup = 'Inventori';
+    protected static ?int $navigationSort = 2;
 
     public static function canAccess(): bool
     {

@@ -20,6 +20,8 @@ class PaletStokResource extends Resource implements HasShieldPermissions
     protected static ?string $model = PaletStok::class;
     protected static ?string $pluralModelLabel = 'Stok Palet';
     protected static ?string $navigationIcon = 'heroicon-o-inbox-stack';
+    protected static ?string $navigationGroup = 'Inventori';
+    protected static ?int $navigationSort = 1;
 
     /* ======================
      * NAV & ACCESS GUARDS

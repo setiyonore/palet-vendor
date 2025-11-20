@@ -41,6 +41,8 @@ class PeminjamanPaletResource extends Resource implements HasShieldPermissions
     protected static ?string $pluralModelLabel = 'Transaksi Palet';
     protected static ?string $navigationLabel = 'Transaksi Palet';
     protected static ?string $navigationIcon = 'heroicon-o-arrows-right-left';
+    protected static ?string $navigationGroup = 'Operasional';
+    protected static ?int $navigationSort = 1;
 
     public static function getPermissionPrefixes(): array
     {

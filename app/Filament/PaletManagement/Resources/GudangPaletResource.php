@@ -21,6 +21,8 @@ class GudangPaletResource extends Resource
     protected static ?string $modelLabel = 'Plant Palet';
     protected static ?string $pluralModelLabel = 'Plant Palet';
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+    protected static ?string $navigationGroup = 'Master Data';
+    protected static ?int $navigationSort = 1;
 
     /* ======================
      * NAV & ACCESS GUARDS

@@ -20,6 +20,8 @@ class PaletStokHistoriResource extends Resource implements HasShieldPermissions
 
     protected static ?string $pluralModelLabel = 'Log Stok Palet';
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+    protected static ?string $navigationGroup = 'Inventori';
+    protected static ?int $navigationSort = 3;
 
     /* ======================
      * NAV & ACCESS GUARDS

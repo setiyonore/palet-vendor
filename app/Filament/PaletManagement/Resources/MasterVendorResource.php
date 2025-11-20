@@ -20,6 +20,8 @@ class MasterVendorResource extends Resource implements HasShieldPermissions
     protected static ?string $model = MasterVendor::class;
     protected static ?string $pluralModelLabel = 'Master Vendor(Ekspeditur)';
     protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static ?string $navigationGroup = 'Master Data';
+    protected static ?int $navigationSort = 2;
 
     /* ======================
      * NAV & ACCESS GUARDS

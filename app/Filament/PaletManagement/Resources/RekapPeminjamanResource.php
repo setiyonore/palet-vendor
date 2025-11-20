@@ -23,6 +23,8 @@ class RekapPeminjamanResource extends Resource implements HasShieldPermissions
     protected static ?string $pluralModelLabel = 'Rekap Belum Kembali';
     protected static ?string $navigationLabel = 'Rekap Belum Kembali';
     protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
+    protected static ?string $navigationGroup = 'Laporan';
+    protected static ?int $navigationSort = 1;
 
     /* ======================
      * NAV & ACCESS GUARDS
