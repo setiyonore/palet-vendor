@@ -64,6 +64,7 @@ class ArmadaPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\RedirectToCorrectPanel::class
             ])
             ->plugins([
                 // --- MENGAKTIFKAN KEMBALI SHIELD DENGAN KONFIGURASI TAMPILAN ---

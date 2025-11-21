@@ -22,6 +22,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Http\Middleware\RedirectToCorrectPanel;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -69,6 +70,7 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
                 \App\Http\Middleware\ForcePasswordChange::class,
+                \App\Http\Middleware\RedirectToCorrectPanel::class,
             ])
             ->navigationGroups([
                 'Operasional',

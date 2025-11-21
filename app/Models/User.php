@@ -76,24 +76,17 @@ class User extends Authenticatable implements FilamentUser
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        // 1. Super Admin boleh akses ke SEMUA panel
+
+        // 1. Super Admin boleh segalanya
         if ($this->hasRole('super_admin')) {
             return true;
         }
 
-        // 2. Cek Permission untuk Panel Admin (Palet Management)
-        // Pastikan permission 'access_panel_admin' sudah dibuat via Seeder
-        if ($panel->getId() === 'admin') {
-            return $this->can('access_panel_admin');
-        }
+        // 2. IZINKAN login jika user punya akses ke Admin ATAU Armada.
+        // Kita return true disini agar user bisa lolos login dulu.
+        // Nanti Middleware 'RedirectToCorrectPanel' yang akan memindahkan
+        // user ke panel yang tepat jika dia salah alamat.
 
-        // 3. Cek Permission untuk Panel Armada
-        // Pastikan permission 'access_panel_armada' sudah dibuat via Seeder
-        if ($panel->getId() === 'armada') {
-            return $this->can('access_panel_armada');
-        }
-
-        // Default: tolak akses jika tidak memenuhi syarat di atas
-        return false;
+        return $this->can('access_panel_admin') || $this->can('access_panel_armada');
     }
 }
