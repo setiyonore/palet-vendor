@@ -3,17 +3,19 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Support\Facades\Hash;
 
-
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
+
     protected $guard_name = 'web';
 
     /**
@@ -47,6 +49,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'password_changed_at' => 'datetime',
     ];
+
     protected static function booted()
     {
         static::updating(function ($user) {
@@ -65,5 +68,32 @@ class User extends Authenticatable
 
         $this->attributes['password'] = Hash::make($value);
         $this->attributes['password_changed_at'] = now();
+    }
+
+    /**
+     * Logika Gerbang Akses Panel
+     * Menggunakan Permission Shield untuk menentukan akses.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // 1. Super Admin boleh akses ke SEMUA panel
+        if ($this->hasRole('super_admin')) {
+            return true;
+        }
+
+        // 2. Cek Permission untuk Panel Admin (Palet Management)
+        // Pastikan permission 'access_panel_admin' sudah dibuat via Seeder
+        if ($panel->getId() === 'admin') {
+            return $this->can('access_panel_admin');
+        }
+
+        // 3. Cek Permission untuk Panel Armada
+        // Pastikan permission 'access_panel_armada' sudah dibuat via Seeder
+        if ($panel->getId() === 'armada') {
+            return $this->can('access_panel_armada');
+        }
+
+        // Default: tolak akses jika tidak memenuhi syarat di atas
+        return false;
     }
 }

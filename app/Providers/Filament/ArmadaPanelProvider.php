@@ -2,14 +2,12 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\PaletManagement\Pages\ChangePassword;
-use App\Filament\PaletManagement\Pages\StokAdjustment;
-use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use App\Filament\Resources\UserResource;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin; // <-- Pastikan ini di-import
 use BezhanSalleh\PanelSwitch\PanelSwitchPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Navigation\MenuItem;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -23,37 +21,35 @@ use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
-class AdminPanelProvider extends PanelProvider
+class ArmadaPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->userMenuItems([
-                MenuItem::make()
-                    ->label('Ganti Password')
-                    ->url(fn() => ChangePassword::getUrl())
-                    ->icon('heroicon-m-key'),
-            ])
-            ->default()
-            ->id('admin')
-            ->path('admin')
+            ->id('armada')
+            ->path('armada')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Green,
             ])
-            ->sidebarCollapsibleOnDesktop()
-            ->discoverResources(in: app_path('Filament/PaletManagement/Resources'), for: 'App\\Filament\\PaletManagement\\Resources')
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            // 1. Hanya memuat Resource khusus untuk Armada
+            ->discoverResources(in: app_path('Filament/Armada/Resources'), for: 'App\\Filament\\Armada\\Resources')
+
+            // 2. Memuat Pages khusus untuk Armada
+            ->discoverPages(in: app_path('Filament/Armada/Pages'), for: 'App\\Filament\\Armada\\Pages')
+
+            // 3. Mendaftarkan UserResource secara manual agar tetap tampil di panel ini
+            ->resources([
+                UserResource::class,
+            ])
+
             ->pages([
                 Pages\Dashboard::class,
-                StokAdjustment::class,
-                ChangePassword::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
+            ->discoverWidgets(in: app_path('Filament/Armada/Widgets'), for: 'App\\Filament\\Armada\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
-                // Widgets\FilamentInfoWidget::class,
+                Widgets\FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -68,22 +64,14 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-                \App\Http\Middleware\ForcePasswordChange::class,
-            ])
-            ->navigationGroups([
-                'Operasional',
-                'Inventori',
-                'Laporan',
-                'Master Data',
-                'Manajemen Sistem',
-                'Filament Shield',
             ])
             ->plugins([
+                // --- MENGAKTIFKAN KEMBALI SHIELD DENGAN KONFIGURASI TAMPILAN ---
                 FilamentShieldPlugin::make()
                     ->gridColumns([
                         'default' => 1,
                         'sm' => 2,
-                        'lg' => 2
+                        'lg' => 2 // Menampilkan resource dalam 2 kolom agar rapi
                     ])
                     ->sectionColumnSpan(1)
                     ->checkboxListColumns([
@@ -95,10 +83,9 @@ class AdminPanelProvider extends PanelProvider
                         'default' => 1,
                         'sm' => 2,
                     ]),
-                // Hapus bagian ->exclude() karena menyebabkan error
+                // ---------------------------------------------------------------
 
-                // PanelSwitchPlugin::make()
-                //     ->visible(fn(): bool => auth()->user()?->hasRole('super_admin') || true),
+                // PanelSwitchPlugin::make(),
             ]);
     }
 }
