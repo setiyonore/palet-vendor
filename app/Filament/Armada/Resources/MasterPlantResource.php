@@ -29,17 +29,17 @@ class MasterPlantResource extends Resource
                         // Select Customer
                         Forms\Components\Select::make('customer_id')
                             ->label('Customer')
-                            ->relationship('customer', 'nama') // 'nama' adalah kolom di master_customers
+                            ->relationship('customer', 'nama')
                             ->searchable()
-                            ->preload()
+                            // ->preload()
                             ->required(),
 
                         // Select Kota (City)
                         Forms\Components\Select::make('city_id')
                             ->label('Kota / Lokasi Plant')
-                            ->relationship('city', 'city_name') // 'city_name' adalah kolom di master_cities
+                            ->relationship('city', 'city_name') // 
                             ->searchable()
-                            ->preload()
+                            // ->preload()
                             ->required(),
                     ])->columns(2),
             ]);
