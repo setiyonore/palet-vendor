@@ -3,7 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Resources\UserResource;
-use BezhanSalleh\FilamentShield\FilamentShieldPlugin; // <-- Pastikan ini di-import
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use BezhanSalleh\PanelSwitch\PanelSwitchPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -20,6 +20,8 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Navigation\MenuItem;
+use App\Filament\PaletManagement\Pages\ChangePassword;
 
 class ArmadaPanelProvider extends PanelProvider
 {
@@ -31,6 +33,12 @@ class ArmadaPanelProvider extends PanelProvider
             ->login()
             ->colors([
                 'primary' => Color::Green,
+            ])
+            ->userMenuItems([
+                MenuItem::make()
+                    ->label('Ganti Password')
+                    ->url(fn() => ChangePassword::getUrl())
+                    ->icon('heroicon-m-key'),
             ])
             // 1. Hanya memuat Resource khusus untuk Armada
             ->discoverResources(in: app_path('Filament/Armada/Resources'), for: 'App\\Filament\\Armada\\Resources')
@@ -45,6 +53,7 @@ class ArmadaPanelProvider extends PanelProvider
 
             ->pages([
                 Pages\Dashboard::class,
+                ChangePassword::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Armada/Widgets'), for: 'App\\Filament\\Armada\\Widgets')
             ->widgets([

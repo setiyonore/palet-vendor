@@ -37,7 +37,9 @@ class DriverResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('nama')->label('Nama'),
+                TextColumn::make('nama')
+                    ->label('Nama')
+                    ->searchable(),
                 TextColumn::make('no_hp')->label('No HP'),
             ])
             ->filters([
