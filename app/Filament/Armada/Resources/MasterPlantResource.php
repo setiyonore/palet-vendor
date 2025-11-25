@@ -67,13 +67,9 @@ class MasterPlantResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                // Filter berdasarkan Customer
                 Tables\Filters\SelectFilter::make('customer')
-                    ->relationship('customer', 'nama'),
-
-                // Filter berdasarkan Kota
-                Tables\Filters\SelectFilter::make('city')
-                    ->relationship('city', 'city_name'),
+                    ->relationship('customer', 'nama')
+                    ->searchable(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
